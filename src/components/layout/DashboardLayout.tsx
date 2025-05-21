@@ -10,7 +10,7 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
-    <SidebarProvider defaultCollapsed={false}>
+    <SidebarProvider defaultCollapsed={false} collapsedWidth={56}>
       <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">

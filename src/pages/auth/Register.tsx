@@ -4,12 +4,14 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Eye, EyeOff, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { toast } from "sonner";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -26,6 +28,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 const Register = () => {
   const { register: registerUser, isAuthenticated, loading } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   
   const form = useForm<RegisterFormValues>({
@@ -44,6 +48,7 @@ const Register = () => {
     setSubmitting(false);
     
     if (success) {
+      toast.success("Account created successfully! Redirecting...");
       navigate("/dashboard");
     }
   };
@@ -56,8 +61,8 @@ const Register = () => {
   return (
     <AuthLayout>
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold">Create an account</h1>
-        <p className="text-muted-foreground mt-1">Enter your details to get started</p>
+        <h1 className="text-2xl font-bold gradient-text">Create an account</h1>
+        <p className="text-muted-foreground mt-1">Join FGAdmin to manage your IT business</p>
       </div>
       
       <Form {...form}>
@@ -67,11 +72,13 @@ const Register = () => {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Full Name</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="John Smith" 
                     type="text" 
+                    className="h-11"
+                    autoComplete="name"
                     {...field} 
                   />
                 </FormControl>
@@ -85,11 +92,13 @@ const Register = () => {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Work Email</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="name@example.com" 
                     type="email" 
+                    className="h-11"
+                    autoComplete="email"
                     {...field} 
                   />
                 </FormControl>
@@ -105,11 +114,27 @@ const Register = () => {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      placeholder="••••••••" 
+                      type={showPassword ? "text" : "password"} 
+                      className="h-11 pr-10"
+                      autoComplete="new-password"
+                      {...field} 
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff size={18} aria-hidden="true" />
+                      ) : (
+                        <Eye size={18} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -123,24 +148,52 @@ const Register = () => {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="••••••••" 
-                    type="password" 
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      placeholder="••••••••" 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      className="h-11 pr-10"
+                      autoComplete="new-password"
+                      {...field} 
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} aria-hidden="true" />
+                      ) : (
+                        <Eye size={18} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
           
-          <Button 
-            type="submit" 
-            className="w-full btn-gradient"
-            disabled={submitting || loading}
-          >
-            {submitting ? "Creating account..." : "Create Account"}
-          </Button>
+          <div className="pt-2">
+            <Button 
+              type="submit" 
+              className="w-full btn-gradient h-11"
+              disabled={submitting || loading}
+            >
+              {submitting ? (
+                <div className="flex items-center justify-center">
+                  <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
+                  Creating account...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create Account
+                </div>
+              )}
+            </Button>
+          </div>
         </form>
       </Form>
       

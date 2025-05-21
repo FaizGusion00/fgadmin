@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { DayModifiers } from "react-day-picker";
 
 // Sample events data
 const eventsData = [
@@ -98,17 +99,19 @@ const Calendar = () => {
     );
   };
   
-  // Modified the calendar to use modifiers instead of renderDay
-  const modifiers = {
+  // Modified the calendar to use modifiers for event indicators
+  const modifiers: DayModifiers = {
     hasEvent: (day: Date) => hasEvents(day)
   };
   
+  // CSS for the modifiers (in inline React style format)
   const modifiersStyles = {
     hasEvent: {
-      position: 'relative',
-      '&::after': {
+      position: 'relative' as const,
+      backgroundColor: 'transparent',
+      "&::after": {
         content: '""',
-        position: 'absolute',
+        position: 'absolute' as const,
         bottom: '2px',
         left: '50%',
         transform: 'translateX(-50%)',
