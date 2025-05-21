@@ -31,7 +31,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
 export const AppSidebar = () => {
-  const { collapsed } = useSidebar();
+  const { state } = useSidebar(); // Using state instead of collapsed
+  const collapsed = state === "collapsed";
   const location = useLocation();
   const { logout } = useAuth();
   
@@ -74,7 +75,6 @@ export const AppSidebar = () => {
       className={`h-screen ${
         collapsed ? "w-[70px] transition-all duration-300" : "w-64 transition-all duration-300"
       }`}
-      collapsible
     >
       <div className="flex items-center justify-between p-4">
         {!collapsed && (
@@ -85,10 +85,7 @@ export const AppSidebar = () => {
 
       <SidebarContent className="p-2">
         {/* Dashboard Group */}
-        <SidebarGroup 
-          open={groupOpenStates.dashboard}
-          onOpenChange={() => toggleGroup('dashboard')}
-        >
+        <SidebarGroup>
           <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""}`}>
             Dashboard
           </SidebarGroupLabel>
@@ -96,7 +93,7 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/dashboard')}>
                   <NavLink 
                     to="/dashboard" 
                     className={getLinkClasses}
@@ -112,10 +109,7 @@ export const AppSidebar = () => {
         </SidebarGroup>
         
         {/* Projects Group */}
-        <SidebarGroup 
-          open={groupOpenStates.projects}
-          onOpenChange={() => toggleGroup('projects')}
-        >
+        <SidebarGroup>
           <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""}`}>
             Projects
           </SidebarGroupLabel>
@@ -123,7 +117,7 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/projects')}>
                   <NavLink 
                     to="/projects" 
                     className={getLinkClasses}
@@ -136,7 +130,7 @@ export const AppSidebar = () => {
               </SidebarMenuItem>
               
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/calendar')}>
                   <NavLink 
                     to="/calendar" 
                     className={getLinkClasses}
@@ -152,10 +146,7 @@ export const AppSidebar = () => {
         </SidebarGroup>
         
         {/* Clients Group */}
-        <SidebarGroup 
-          open={groupOpenStates.clients}
-          onOpenChange={() => toggleGroup('clients')}
-        >
+        <SidebarGroup>
           <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""}`}>
             Business
           </SidebarGroupLabel>
@@ -163,7 +154,7 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/clients')}>
                   <NavLink 
                     to="/clients" 
                     className={getLinkClasses}
@@ -176,7 +167,7 @@ export const AppSidebar = () => {
               </SidebarMenuItem>
               
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/sales')}>
                   <NavLink 
                     to="/sales" 
                     className={getLinkClasses}
@@ -192,10 +183,7 @@ export const AppSidebar = () => {
         </SidebarGroup>
         
         {/* Tools Group */}
-        <SidebarGroup 
-          open={groupOpenStates.tools}
-          onOpenChange={() => toggleGroup('tools')}
-        >
+        <SidebarGroup>
           <SidebarGroupLabel className={`${collapsed ? "sr-only" : ""}`}>
             Tools
           </SidebarGroupLabel>
@@ -203,7 +191,7 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/notes')}>
                   <NavLink 
                     to="/notes" 
                     className={getLinkClasses}
@@ -216,7 +204,7 @@ export const AppSidebar = () => {
               </SidebarMenuItem>
               
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/todos')}>
                   <NavLink 
                     to="/todos" 
                     className={getLinkClasses}
@@ -229,7 +217,7 @@ export const AppSidebar = () => {
               </SidebarMenuItem>
               
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/thesis')}>
                   <NavLink 
                     to="/thesis" 
                     className={getLinkClasses}
@@ -251,7 +239,7 @@ export const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={isRouteActive('/settings')}>
                   <NavLink 
                     to="/settings" 
                     className={getLinkClasses}

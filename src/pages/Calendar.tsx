@@ -98,18 +98,26 @@ const Calendar = () => {
     );
   };
   
-  // Custom rendering of days
-  const renderDay = (day: Date) => {
-    const hasEventsOnDay = hasEvents(day);
-    
-    return (
-      <div className="relative">
-        <div>{day.getDate()}</div>
-        {hasEventsOnDay && (
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></div>
-        )}
-      </div>
-    );
+  // Modified the calendar to use modifiers instead of renderDay
+  const modifiers = {
+    hasEvent: (day: Date) => hasEvents(day)
+  };
+  
+  const modifiersStyles = {
+    hasEvent: {
+      position: 'relative',
+      '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: '2px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '4px',
+        height: '4px',
+        backgroundColor: 'hsl(var(--primary))',
+        borderRadius: '50%'
+      }
+    }
   };
   
   return (
@@ -224,7 +232,8 @@ const Calendar = () => {
                 selected={date}
                 onSelect={setDate}
                 className="rounded-md border shadow-sm"
-                renderDay={renderDay}
+                modifiers={modifiers}
+                modifiersStyles={modifiersStyles}
               />
               
               <div className="mt-4">
