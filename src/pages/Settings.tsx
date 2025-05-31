@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, User, Bell, Palette } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Palette, Save } from "lucide-react";
 
 interface UserSettings {
   id: string;
@@ -90,7 +90,6 @@ const SettingsPage = () => {
 
       if (error) throw error;
 
-      // Update theme context if theme changed
       if (settings.theme !== theme) {
         setTheme(settings.theme as "light" | "dark");
       }
@@ -112,46 +111,54 @@ const SettingsPage = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
+    return (
+      <div className="content-wrapper">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and application preferences</p>
+    <div className="content-wrapper">
+      <div className="page-header">
+        <h1 className="page-title gradient-text">Settings</h1>
+        <p className="page-subtitle">Manage your account and application preferences</p>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-8">
         {/* Profile Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+        <Card className="section-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <User className="h-5 w-5 text-primary" />
+              </div>
               Profile Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="email">Email</Label>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
                 <Input
                   id="email"
                   value={user?.email || ""}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted/50 cursor-not-allowed"
                 />
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground">
                   Email cannot be changed from here
                 </p>
               </div>
-              <div>
-                <Label htmlFor="userId">User ID</Label>
+              <div className="space-y-2">
+                <Label htmlFor="userId" className="text-sm font-medium">User ID</Label>
                 <Input
                   id="userId"
                   value={user?.id || ""}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted/50 cursor-not-allowed font-mono text-xs"
                 />
               </div>
             </div>
@@ -159,26 +166,28 @@ const SettingsPage = () => {
         </Card>
 
         {/* Appearance Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
+        <Card className="section-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 bg-accent/10 rounded-xl">
+                <Palette className="h-5 w-5 text-accent" />
+              </div>
               Appearance
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="theme">Theme</Label>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="theme" className="text-sm font-medium">Theme Preference</Label>
               <Select 
                 value={settings.theme} 
                 onValueChange={(value) => setSettings({ ...settings, theme: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select theme" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
+                  <SelectItem value="light">☀️ Light Mode</SelectItem>
+                  <SelectItem value="dark">🌙 Dark Mode</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -186,19 +195,21 @@ const SettingsPage = () => {
         </Card>
 
         {/* Notifications Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
+        <Card className="section-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 bg-orange-500/10 rounded-xl">
+                <Bell className="h-5 w-5 text-orange-500" />
+              </div>
               Notifications
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="email-notifications">Email Notifications</Label>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+              <div className="space-y-1">
+                <Label htmlFor="email-notifications" className="text-sm font-medium">Email Notifications</Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive notifications via email
+                  Receive important updates via email
                 </p>
               </div>
               <Switch
@@ -209,12 +220,12 @@ const SettingsPage = () => {
                 }
               />
             </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="push-notifications">Push Notifications</Label>
+            
+            <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+              <div className="space-y-1">
+                <Label htmlFor="push-notifications" className="text-sm font-medium">Push Notifications</Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive push notifications in browser
+                  Receive real-time notifications in browser
                 </p>
               </div>
               <Switch
@@ -229,30 +240,32 @@ const SettingsPage = () => {
         </Card>
 
         {/* Preferences Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5" />
+        <Card className="section-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 bg-green-500/10 rounded-xl">
+                <SettingsIcon className="h-5 w-5 text-green-500" />
+              </div>
               Preferences
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="currency">Default Currency</Label>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="currency" className="text-sm font-medium">Default Currency</Label>
               <Select 
                 value={settings.default_currency} 
                 onValueChange={(value) => setSettings({ ...settings, default_currency: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="JPY">JPY (¥)</SelectItem>
-                  <SelectItem value="CAD">CAD (C$)</SelectItem>
-                  <SelectItem value="AUD">AUD (A$)</SelectItem>
+                  <SelectItem value="USD">🇺🇸 USD ($)</SelectItem>
+                  <SelectItem value="EUR">🇪🇺 EUR (€)</SelectItem>
+                  <SelectItem value="GBP">🇬🇧 GBP (£)</SelectItem>
+                  <SelectItem value="JPY">🇯🇵 JPY (¥)</SelectItem>
+                  <SelectItem value="CAD">🇨🇦 CAD (C$)</SelectItem>
+                  <SelectItem value="AUD">🇦🇺 AUD (A$)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -261,8 +274,22 @@ const SettingsPage = () => {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Settings"}
+          <Button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="btn-gradient h-12 px-8"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Settings
+              </>
+            )}
           </Button>
         </div>
       </div>

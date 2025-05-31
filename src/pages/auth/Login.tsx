@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get return URL from location state or default to dashboard
   const from = location.state?.from?.pathname || "/dashboard";
   
   const form = useForm<LoginFormValues>({
@@ -38,7 +37,6 @@ const Login = () => {
     },
   });
   
-  // Auto-fill demo credentials when "Use demo account" is clicked
   const fillDemoCredentials = () => {
     form.setValue("email", "admin@example.com");
     form.setValue("password", "password");
@@ -51,36 +49,35 @@ const Login = () => {
     setSubmitting(false);
     
     if (success) {
-      toast.success("Login successful! Redirecting...");
+      toast.success("Welcome back! Redirecting to dashboard...");
       navigate(from);
     }
   };
   
-  // Redirect to dashboard if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/dashboard" />;
   }
   
   return (
     <AuthLayout>
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold gradient-text">Welcome back</h1>
-        <p className="text-muted-foreground mt-1">Sign in to your FGAdmin account</p>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
+        <p className="text-muted-foreground">Sign in to your FGAdmin account</p>
       </div>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
+              <FormItem className="form-field">
+                <FormLabel className="text-sm font-medium text-foreground">Email</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="name@example.com" 
                     type="email" 
-                    className="h-11"
+                    className="form-input"
                     autoComplete="email"
                     {...field} 
                   />
@@ -94,33 +91,33 @@ const Login = () => {
             control={form.control}
             name="password"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
+              <FormItem className="form-field">
+                <FormLabel className="text-sm font-medium text-foreground">Password</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input 
                       placeholder="••••••••" 
                       type={showPassword ? "text" : "password"} 
-                      className="h-11 pr-10"
+                      className="form-input pr-12"
                       autoComplete="current-password"
                       {...field} 
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       onClick={() => setShowPassword(!showPassword)}
                       tabIndex={-1}
                     >
                       {showPassword ? (
-                        <EyeOff size={18} aria-hidden="true" />
+                        <EyeOff size={20} />
                       ) : (
-                        <Eye size={18} aria-hidden="true" />
+                        <Eye size={20} />
                       )}
                     </button>
                   </div>
                 </FormControl>
                 <div className="flex justify-end">
-                  <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                  <Link to="/forgot-password" className="text-sm text-primary hover:text-primary/80 font-medium">
                     Forgot password?
                   </Link>
                 </div>
@@ -131,17 +128,17 @@ const Login = () => {
           
           <Button 
             type="submit" 
-            className="w-full btn-gradient h-11 mt-6"
+            className="w-full btn-gradient h-12 text-base font-medium"
             disabled={submitting || loading}
           >
             {submitting ? (
               <div className="flex items-center justify-center">
-                <div className="h-4 w-4 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
+                <div className="h-5 w-5 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
                 Signing in...
               </div>
             ) : (
               <div className="flex items-center justify-center">
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="mr-2 h-5 w-5" />
                 Sign In
               </div>
             )}
@@ -150,33 +147,34 @@ const Login = () => {
       </Form>
       
       <div className="mt-8 relative flex items-center">
-        <div className="flex-grow border-t border-gray-200"></div>
-        <span className="mx-2 flex-shrink text-sm text-gray-400">or</span>
-        <div className="flex-grow border-t border-gray-200"></div>
+        <div className="flex-grow border-t border-border"></div>
+        <span className="mx-4 flex-shrink text-sm text-muted-foreground font-medium">or</span>
+        <div className="flex-grow border-t border-border"></div>
       </div>
       
       <Button 
         type="button" 
         variant="outline" 
-        className="w-full mt-4"
+        className="w-full mt-6 h-12 border-2 hover:bg-muted/50 transition-all"
         onClick={fillDemoCredentials}
       >
+        <Sparkles className="mr-2 h-5 w-5" />
         Use demo account
       </Button>
       
       <div className="mt-6 text-center text-sm">
-        <p>
+        <p className="text-muted-foreground">
           Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">
+          <Link to="/register" className="text-primary font-semibold hover:text-primary/80 transition-colors">
             Create an account
           </Link>
         </p>
       </div>
       
-      <div className="mt-8 text-center text-xs text-muted-foreground p-4 bg-slate-50 rounded-lg">
-        <p className="font-medium">Demo credentials</p>
-        <p>Email: admin@example.com</p>
-        <p>Password: password</p>
+      <div className="mt-8 text-center text-sm p-4 bg-muted/30 rounded-xl border">
+        <p className="font-semibold text-foreground mb-2">Demo credentials</p>
+        <p className="text-muted-foreground">Email: admin@example.com</p>
+        <p className="text-muted-foreground">Password: password</p>
       </div>
     </AuthLayout>
   );
