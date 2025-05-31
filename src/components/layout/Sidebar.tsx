@@ -216,18 +216,6 @@ export const AppSidebar = () => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isRouteActive('/thesis')}>
-                  <NavLink 
-                    to="/thesis" 
-                    className={getLinkClasses}
-                    onClick={() => handleNavigation()}
-                  >
-                    <BookOpen size={18} />
-                    {!collapsed && <span>Thesis</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

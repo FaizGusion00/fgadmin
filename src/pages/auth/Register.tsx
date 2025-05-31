@@ -101,13 +101,13 @@ const Register = () => {
   };
 
   return (
-    <AuthLayout>
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-100 dark:bg-slate-900 overflow-hidden">
       <WaterWaveBackground />
       <div className="relative z-10 w-full max-w-md mx-auto">
-        <Card className="backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border border-white/20 shadow-2xl animate-fade-in">
+        <Card className="w-full backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border border-white/20 shadow-2xl animate-fade-in">
           <CardHeader className="space-y-4 text-center">
             <div className="flex justify-center">
-              <FGAdminLogo size={64} />
+              <FGAdminLogo size="lg" />
             </div>
             <div>
               <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
@@ -207,6 +207,8 @@ const Register = () => {
               </Button>
             </form>
 
+            {/* Social authentication options commented out until fully implemented */}
+            {/* 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <Separator className="w-full bg-slate-200 dark:bg-slate-700" />
@@ -243,6 +245,7 @@ const Register = () => {
                 GitHub
               </Button>
             </div>
+            */}
 
             <div className="text-center space-y-2">
               <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -262,7 +265,7 @@ const Register = () => {
           <p>Developed by: Faiz Nasir | Owned by: FGCompany Official</p>
         </div>
       </div>
-    </AuthLayout>
+    </div>
   );
 };
 

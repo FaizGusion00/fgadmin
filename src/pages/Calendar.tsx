@@ -139,21 +139,38 @@ const Calendar = () => {
       return;
     }
 
+    // Ensure we have a valid date
+    if (!date) {
+      toast({
+        title: "Error",
+        description: "Please select a valid date",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      // Create a new date object for safety
+      const selectedDate = new Date(date);
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      
+      const startTime = formData.all_day 
+        ? new Date(selectedDate).toISOString() 
+        : new Date(`${formattedDate}T${formData.start_time}`).toISOString();
+      const endTime = formData.all_day 
+        ? new Date(selectedDate).toISOString() 
+        : new Date(`${formattedDate}T${formData.end_time}`).toISOString();
+        
       const eventData = {
         title: formData.title,
         description: formData.description || null,
-        start_time: formData.all_day 
-          ? new Date(date!).toISOString() 
-          : new Date(`${date!.toISOString().split('T')[0]}T${formData.start_time}`).toISOString(),
-        end_time: formData.all_day 
-          ? new Date(date!).toISOString() 
-          : new Date(`${date!.toISOString().split('T')[0]}T${formData.end_time}`).toISOString(),
+        start_time: startTime,
+        end_time: endTime,
         all_day: formData.all_day,
         location: formData.location || null,
         event_type: formData.event_type,
-        project_id: formData.project_id || null,
-        client_id: formData.client_id || null,
+        project_id: formData.project_id === "none" ? null : formData.project_id,
+        client_id: formData.client_id === "none" ? null : formData.client_id,
         updated_at: new Date().toISOString(),
       };
 
@@ -202,17 +219,19 @@ const Calendar = () => {
     setEditingEvent(event);
     const startTime = new Date(event.start_time);
     const endTime = new Date(event.end_time);
+    const startTimeStr = event.all_day ? "" : startTime.toTimeString().slice(0, 5);
+    const endTimeStr = event.all_day ? "" : endTime.toTimeString().slice(0, 5);
     
     setFormData({
       title: event.title,
       description: event.description || "",
-      start_time: event.all_day ? "" : startTime.toTimeString().slice(0, 5),
-      end_time: event.all_day ? "" : endTime.toTimeString().slice(0, 5),
+      start_time: startTimeStr,
+      end_time: endTimeStr,
       all_day: event.all_day,
       location: event.location || "",
       event_type: event.event_type,
-      project_id: event.project_id || "",
-      client_id: event.client_id || ""
+      project_id: event.project_id || "none",
+      client_id: event.client_id || "none"
     });
     setDate(startTime);
     setDialogOpen(true);
@@ -254,8 +273,8 @@ const Calendar = () => {
       all_day: false,
       location: "",
       event_type: "meeting",
-      project_id: "",
-      client_id: ""
+      project_id: "none",
+      client_id: "none"
     });
     setEditingEvent(null);
   };
@@ -371,7 +390,7 @@ const Calendar = () => {
                     <SelectValue placeholder="Select project" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No project</SelectItem>
+                    <SelectItem value="none">No project</SelectItem>
                     {projects.map(project => (
                       <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                     ))}
@@ -385,7 +404,7 @@ const Calendar = () => {
                     <SelectValue placeholder="Select client" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No client</SelectItem>
+                    <SelectItem value="none">No client</SelectItem>
                     {clients.map(client => (
                       <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                     ))}
@@ -455,9 +474,17 @@ const Calendar = () => {
           <Card>
             <CardContent className="pt-6">
               <CalendarComponent
-                mode="single"
+                viewMode="month"
                 selected={date}
-                onSelect={setDate}
+                onSelect={(selectedDate) => {
+                  // Handle different types of selection
+                  if (selectedDate instanceof Date) {
+                    setDate(selectedDate);
+                  } else if (selectedDate && typeof selectedDate === 'object' && 'from' in selectedDate && selectedDate.from) {
+                    // If a range is selected, use the 'from' date
+                    setDate(selectedDate.from);
+                  }
+                }}
                 className="rounded-md border shadow-sm"
                 modifiers={{
                   hasEvent: hasEvents
@@ -591,21 +618,149 @@ const Calendar = () => {
                     </div>
                   )}
                 </TabsContent>
-                <TabsContent value="week">
-                  <div className="py-10 text-center">
-                    <h3 className="text-lg font-medium">Week View</h3>
-                    <p className="text-muted-foreground mt-1">
-                      Week view will be implemented in the next version.
-                    </p>
-                  </div>
+                <TabsContent value="week" className="mt-4">
+                  {date && (
+                    <>
+                      <div className="grid grid-cols-7 gap-1 mb-2 text-center font-medium">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                          <div key={day} className="p-2">{day}</div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 h-[500px]">
+                        {(() => {
+                          // Calculate the start of the week (Monday)
+                          const weekStart = new Date(date);
+                          const day = weekStart.getDay();
+                          const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+                          weekStart.setDate(diff);
+                          weekStart.setHours(0, 0, 0, 0);
+                          
+                          // Generate the 7 days of the week
+                          return Array.from({ length: 7 }, (_, i) => {
+                            const currentDate = new Date(weekStart);
+                            currentDate.setDate(weekStart.getDate() + i);
+                            
+                            // Get events for this day
+                            const dayEvents = events.filter(event => {
+                              const eventDate = new Date(event.start_time);
+                              return (
+                                eventDate.getDate() === currentDate.getDate() &&
+                                eventDate.getMonth() === currentDate.getMonth() &&
+                                eventDate.getFullYear() === currentDate.getFullYear()
+                              );
+                            });
+                            
+                            const isToday = new Date().toDateString() === currentDate.toDateString();
+                            
+                            return (
+                              <div 
+                                key={i} 
+                                className={`border rounded-md p-2 overflow-y-auto ${isToday ? 'bg-accent' : ''}`}
+                                onClick={() => setDate(new Date(currentDate))}
+                              >
+                                <div className="font-medium mb-1 sticky top-0 bg-inherit z-10">
+                                  {currentDate.getDate()}
+                                </div>
+                                <div className="space-y-1">
+                                  {dayEvents.length > 0 ? (
+                                    dayEvents.map((event) => (
+                                      <div 
+                                        key={event.id} 
+                                        className={`p-1 text-xs rounded cursor-pointer ${getEventTypeColor(event.event_type)}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEdit(event);
+                                        }}
+                                      >
+                                        <div className="font-medium truncate">{event.title}</div>
+                                        {!event.all_day && (
+                                          <div className="truncate">
+                                            {new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()} 
+                      </div>
+                    </>
+                  )}
                 </TabsContent>
-                <TabsContent value="month">
-                  <div className="py-10 text-center">
-                    <h3 className="text-lg font-medium">Month View</h3>
-                    <p className="text-muted-foreground mt-1">
-                      Month view will be implemented in the next version.
-                    </p>
-                  </div>
+                <TabsContent value="month" className="mt-4">
+                  {date && (
+                    <>
+                      <div className="grid grid-cols-7 gap-1 mb-2 text-center font-medium">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                          <div key={day} className="p-2">{day}</div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 h-[500px]">
+                        {(() => {
+                          // Calculate the start of the month view (which may include days from previous/next month)
+                          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+                          const monthStartDay = monthStart.getDay() || 7; // Convert Sunday (0) to 7 for easier calculation
+                          const startDate = new Date(monthStart);
+                          startDate.setDate(monthStart.getDate() - (monthStartDay - 1)); // Adjust to start from Monday
+                          
+                          // Generate the days for the month view (6 weeks = 42 days)
+                          return Array.from({ length: 42 }, (_, i) => {
+                            const currentDate = new Date(startDate);
+                            currentDate.setDate(startDate.getDate() + i);
+                            
+                            // Get events for this day
+                            const dayEvents = events.filter(event => {
+                              const eventDate = new Date(event.start_time);
+                              return (
+                                eventDate.getDate() === currentDate.getDate() &&
+                                eventDate.getMonth() === currentDate.getMonth() &&
+                                eventDate.getFullYear() === currentDate.getFullYear()
+                              );
+                            });
+                            
+                            const isToday = new Date().toDateString() === currentDate.toDateString();
+                            const isCurrentMonth = currentDate.getMonth() === date.getMonth();
+                            
+                            return (
+                              <div 
+                                key={i} 
+                                className={`border rounded-md p-1 overflow-y-auto ${isToday ? 'bg-accent' : ''} ${isCurrentMonth ? '' : 'text-muted-foreground opacity-50'}`}
+                                onClick={() => setDate(new Date(currentDate))}
+                              >
+                                <div className="font-medium text-xs mb-1 sticky top-0 bg-inherit z-10">
+                                  {currentDate.getDate()}
+                                </div>
+                                <div className="space-y-1 max-h-[60px] overflow-y-auto">
+                                  {dayEvents.length > 0 ? (
+                                    dayEvents.slice(0, 3).map((event) => (
+                                      <div 
+                                        key={event.id} 
+                                        className={`p-1 text-xs rounded cursor-pointer ${getEventTypeColor(event.event_type)}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEdit(event);
+                                        }}
+                                      >
+                                        <div className="font-medium truncate">{event.title}</div>
+                                      </div>
+                                    ))
+                                  ) : null}
+                                  {dayEvents.length > 3 && (
+                                    <div className="text-xs text-center text-muted-foreground">
+                                      +{dayEvents.length - 3} more
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>

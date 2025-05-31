@@ -210,11 +210,22 @@ const ClientsPage = () => {
     setEditingClient(null);
   };
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.company?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClients = clients.filter(client => {
+    if (!searchTerm) return true;
+
+    const query = searchTerm.toLowerCase();
+    
+    // Search across multiple client fields
+    return (
+      client.name.toLowerCase().includes(query) ||
+      (client.email && client.email.toLowerCase().includes(query)) ||
+      (client.company && client.company.toLowerCase().includes(query)) ||
+      (client.phone && client.phone.toLowerCase().includes(query)) ||
+      (client.address && client.address.toLowerCase().includes(query)) ||
+      client.status.toLowerCase().includes(query) ||
+      (client.notes && client.notes.toLowerCase().includes(query))
+    );
+  });
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;

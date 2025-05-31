@@ -118,7 +118,7 @@ const Notes = () => {
         content: formData.content || null,
         category: formData.category,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : null,
-        project_id: formData.project_id || null,
+        project_id: formData.project_id === "none" ? null : formData.project_id,
         updated_at: new Date().toISOString(),
       };
 
@@ -170,7 +170,7 @@ const Notes = () => {
       content: note.content || "",
       category: note.category,
       tags: note.tags ? note.tags.join(', ') : "",
-      project_id: note.project_id || ""
+      project_id: note.project_id || "none"
     });
     setDialogOpen(true);
   };
@@ -233,7 +233,7 @@ const Notes = () => {
       content: "",
       category: "general",
       tags: "",
-      project_id: ""
+      project_id: "none"
     });
     setEditingNote(null);
   };
@@ -251,13 +251,28 @@ const Notes = () => {
   };
 
   const filteredNotes = notes.filter(note => {
-    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         note.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         note.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-                         
-    const matchesCategory = selectedCategory === "all" || note.category === selectedCategory;
+    // Filter by category first
+    const matchesCategory = selectedCategory === 'all' || note.category === selectedCategory;
+    if (!matchesCategory) return false;
     
-    return matchesSearch && matchesCategory;
+    // If no search query, just filter by category
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    
+    // Search in title and content
+    const matchesTitle = note.title.toLowerCase().includes(query);
+    const matchesContent = note.content.toLowerCase().includes(query);
+    
+    // Search in category
+    const matchesCategoryText = note.category.toLowerCase().includes(query);
+    
+    // Search in tags (if available)
+    const matchesTags = note.tags ? note.tags.some(tag => 
+      tag.toLowerCase().includes(query)
+    ) : false;
+    
+    return matchesTitle || matchesContent || matchesCategoryText || matchesTags;
   });
 
   const pinnedNotes = filteredNotes.filter(note => note.is_pinned);
@@ -334,7 +349,7 @@ const Notes = () => {
                     <SelectValue placeholder="Select project" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No project</SelectItem>
+                    <SelectItem value="none">No project</SelectItem>
                     {projects.map(project => (
                       <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                     ))}

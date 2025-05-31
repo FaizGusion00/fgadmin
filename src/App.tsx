@@ -18,8 +18,9 @@ import Clients from "./pages/Clients";
 import Sales from "./pages/Sales";
 import Notes from "./pages/Notes";
 import TodoList from "./pages/TodoList";
-import Thesis from "./pages/Thesis";
 import Settings from "./pages/Settings";
+import RecentActivity from "./pages/RecentActivity";
+import Notifications from "./pages/Notifications";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
@@ -31,8 +32,8 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <TooltipProvider>
           <SidebarProvider>
             <Toaster />
@@ -96,17 +97,24 @@ const App = () => (
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                <Route path="/thesis" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Thesis />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
                 <Route path="/settings" element={
                   <ProtectedRoute>
                     <DashboardLayout>
                       <Settings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/recent-activity" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <RecentActivity />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/notifications" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Notifications />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
@@ -117,8 +125,8 @@ const App = () => (
             </BrowserRouter>
           </SidebarProvider>
         </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

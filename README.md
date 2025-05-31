@@ -1,73 +1,163 @@
-# Welcome to your Lovable project
+<p align="center">
+  <img src="public/logo.png" alt="FGAdmin Logo" width="180" />
+</p>
 
-## Project info
+<h1 align="center">FGAdmin</h1>
 
-**URL**: https://lovable.dev/projects/37e12016-968c-48b4-b87c-d00a68d9a466
+<p align="center">
+  <b>Beautiful, Enterprise-Grade Admin Dashboard for Malaysian Businesses</b>
+</p>
 
-## How can I edit this code?
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version 1.0.0" />
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT" />
+  <img src="https://img.shields.io/badge/React-18.x-61DAFB" alt="React 18" />
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/TailwindCSS-3.x-06B6D4" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E" alt="Supabase" />
+</p>
 
-There are several ways of editing your application.
+<p align="center">
+  <a href="#overview"><strong>Overview</strong></a> •
+  <a href="#features"><strong>Features</strong></a> •
+  <a href="#getting-started"><strong>Getting Started</strong></a> •
+  <a href="#usage"><strong>Usage</strong></a> •
+  <a href="#architecture"><strong>Architecture</strong></a> •
+  <a href="#customization"><strong>Customization</strong></a> •
+  <a href="#support"><strong>Support</strong></a>
+</p>
 
-**Use Lovable**
+<hr style="margin-bottom: 2rem;" />
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/37e12016-968c-48b4-b87c-d00a68d9a466) and start prompting.
+## Overview
 
-Changes made via Lovable will be committed automatically to this repo.
+FGAdmin is a modern, feature-rich administration dashboard tailored for Malaysian businesses. Built with React, TypeScript, Tailwind CSS, and Supabase, it empowers you to manage sales, projects, tasks, analytics, and more—all in one elegant and responsive interface. MYR (Malaysian Ringgit) is the default currency, with full support for customization, dark/light themes, and role-based access.
 
-**Use your preferred IDE**
+<p align="center">
+  <img src="public/dashboard-preview.png" alt="Dashboard Preview" width="80%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
+</p>
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Features
 
-Follow these steps:
+- **📊 Dashboard Analytics:** Real-time business metrics & KPIs
+- **💼 Sales Management:** Track revenue, clients, and transactions (MYR default)
+- **📁 Project Tracking:** Monitor project status, deadlines, and resources
+- **✅ Task Management:** Organize and prioritize todos with deadlines and priorities
+- **👥 Client Management:** Manage client information and relationships
+- **🔔 Notifications:** Stay updated with in-app notifications
+- **🗓️ Calendar Integration:** Manage events and schedules
+- **📝 Notes:** Securely store and organize business notes
+- **⚡ Fast & Responsive:** Optimized for all devices, with beautiful UI
+- **🌙 Dark/Light Mode:** Seamless theme switching
+- **🔒 Secure Auth:** Role-based access, powered by Supabase
+- **🌐 Localization:** Malaysian business context, easily extendable
+- **🛠️ Customizable:** Widgets, themes, and preferences per user
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Getting Started
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Prerequisites
+- **Node.js** v16+
+- **npm** v8+ or **yarn** v1.22+
+- **Git**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/FGCompany/fgadmin.git
+cd fgadmin
+
+# Install dependencies
+npm install
+
+# Copy environment variables template
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Usage
 
-**Use GitHub Codespaces**
+### Development
+```bash
+npm run dev       # Start dev server with hot reload
+npm run lint      # Lint code
+npm test          # Run tests (if available)
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Production
+```bash
+npm run build     # Build for production
+npm run preview   # Preview production build locally
+```
 
-## What technologies are used for this project?
+- Development: http://localhost:5173
+- Production preview: http://localhost:4173
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Architecture
 
-## How can I deploy this project?
+### Tech Stack
+- **Frontend:** React 18, TypeScript
+- **UI:** shadcn/ui, Tailwind CSS
+- **State:** React Context API
+- **API & Auth:** Supabase (PostgreSQL)
+- **Build Tool:** Vite
 
-Simply open [Lovable](https://lovable.dev/projects/37e12016-968c-48b4-b87c-d00a68d9a466) and click on Share -> Publish.
+### Directory Structure
+```
+fgadmin/
+├── public/         # Static assets (logo, images)
+├── src/
+│   ├── components/ # Reusable UI components
+│   ├── contexts/   # React context providers
+│   ├── hooks/      # Custom React hooks
+│   ├── integrations/ # Third-party integrations (Supabase, etc.)
+│   ├── lib/        # Utilities
+│   ├── pages/      # App pages (Dashboard, Projects, Todo, etc.)
+│   └── styles/     # Global styles
+├── .env.example    # Env variables template
+├── package.json    # Dependencies & scripts
+```
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## Configuration
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Copy `.env.example` to `.env.local` and set:
+- `VITE_SUPABASE_URL` — Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` — Your Supabase anon key
+- `VITE_DEFAULT_CURRENCY` — Default currency (MYR recommended)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+---
+
+## Customization
+
+- **Theme:** Switch light/dark mode in Settings
+- **Currency:** Change default in Settings
+- **Dashboard Widgets:** Personalize visible metrics per user
+- **User Preferences:** All settings are saved per user via Supabase
+
+---
+
+## Support
+
+For technical support, feature requests, or feedback:
+- **Email:** support@fgcompany.com.my
+- **Website:** [fgcompany.com.my/support](https://fgcompany.com.my/support)
+
+---
+
+<p align="center">
+  <b>Developed by Faiz Nasir</b><br />
+  <b>Owned by FGCompany Official</b><br />
+  Copyright &copy; 2025 FGCompany. All rights reserved.
+</p>

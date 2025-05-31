@@ -17,13 +17,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, User, Bell, Palette } from "lucide-react";
+import { Settings as SettingsIcon, User, Palette, DollarSign } from "lucide-react";
 
 interface UserSettings {
   id: string;
   theme: string;
-  notification_email: boolean;
-  notification_push: boolean;
   default_currency: string;
 }
 
@@ -36,9 +34,7 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState<UserSettings>({
     id: "",
     theme: "light",
-    notification_email: true,
-    notification_push: true,
-    default_currency: "USD",
+    default_currency: "MYR", // Set MYR as default currency
   });
 
   useEffect(() => {
@@ -60,7 +56,11 @@ const SettingsPage = () => {
       }
 
       if (data) {
-        setSettings(data);
+        setSettings({
+          id: data.id || "",
+          theme: data.theme || "light",
+          default_currency: data.default_currency || "MYR",
+        });
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -80,10 +80,9 @@ const SettingsPage = () => {
       const { error } = await supabase
         .from("user_settings")
         .upsert({
+          id: settings.id, // Include the id for update
           user_id: user?.id,
           theme: settings.theme,
-          notification_email: settings.notification_email,
-          notification_push: settings.notification_push,
           default_currency: settings.default_currency,
           updated_at: new Date().toISOString(),
         });
@@ -185,60 +184,20 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Notifications Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="email-notifications">Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive notifications via email
-                </p>
-              </div>
-              <Switch
-                id="email-notifications"
-                checked={settings.notification_email}
-                onCheckedChange={(checked) => 
-                  setSettings({ ...settings, notification_email: checked })
-                }
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="push-notifications">Push Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Receive push notifications in browser
-                </p>
-              </div>
-              <Switch
-                id="push-notifications"
-                checked={settings.notification_push}
-                onCheckedChange={(checked) => 
-                  setSettings({ ...settings, notification_push: checked })
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Preferences Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5" />
-              Preferences
+              <DollarSign className="h-5 w-5" />
+              Currency Settings
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="currency">Default Currency</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Select your preferred currency for transactions and reports
+              </p>
               <Select 
                 value={settings.default_currency} 
                 onValueChange={(value) => setSettings({ ...settings, default_currency: value })}
@@ -247,12 +206,11 @@ const SettingsPage = () => {
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="MYR">MYR (RM)</SelectItem>
                   <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="SGD">SGD (S$)</SelectItem>
                   <SelectItem value="EUR">EUR (€)</SelectItem>
                   <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="JPY">JPY (¥)</SelectItem>
-                  <SelectItem value="CAD">CAD (C$)</SelectItem>
-                  <SelectItem value="AUD">AUD (A$)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -261,7 +219,7 @@ const SettingsPage = () => {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]">
             {saving ? "Saving..." : "Save Settings"}
           </Button>
         </div>

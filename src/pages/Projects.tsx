@@ -124,7 +124,7 @@ const Projects = () => {
       const projectData = {
         name: formData.name,
         description: formData.description || null,
-        client_id: formData.client_id || null,
+        client_id: formData.client_id && formData.client_id !== 'none' ? formData.client_id : null,
         status: formData.status,
         priority: formData.priority,
         start_date: formData.start_date || null,
@@ -261,18 +261,27 @@ const Projects = () => {
     }
   };
   
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.client?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-                         
-    if (activeTab === "all") return matchesSearch;
-    if (activeTab === "in_progress") return matchesSearch && project.status === "in_progress";
-    if (activeTab === "completed") return matchesSearch && project.status === "completed";
-    if (activeTab === "planning") return matchesSearch && project.status === "planning";
-    
-    return matchesSearch;
-  });
+  // Filter projects based on search query and active tab
+  const filteredProjects = projects
+    .filter(project => {
+      // Filter by search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = project.name.toLowerCase().includes(query);
+        const matchesDescription = project.description?.toLowerCase().includes(query) || false;
+        const matchesStatus = project.status.toLowerCase().includes(query);
+        const matchesPriority = project.priority.toLowerCase().includes(query);
+        const matchesClient = project.client?.name.toLowerCase().includes(query) || false;
+        
+        if (!matchesName && !matchesDescription && !matchesStatus && !matchesPriority && !matchesClient) {
+          return false;
+        }
+      }
+      
+      // Filter by tab
+      if (activeTab === 'all') return true;
+      return project.status === activeTab;
+    });
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
@@ -329,7 +338,7 @@ const Projects = () => {
                     <SelectValue placeholder="Select client" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No client</SelectItem>
+                    <SelectItem value="none">No client</SelectItem>
                     {clients.map(client => (
                       <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                     ))}

@@ -246,10 +246,22 @@ const SalesPage = () => {
     setEditingSale(null);
   };
 
-  const filteredSales = sales.filter(sale =>
-    sale.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSales = sales.filter(sale => {
+    if (!searchTerm) return true;
+    
+    const query = searchTerm.toLowerCase();
+    
+    // Search across multiple sale fields
+    return (
+      sale.description.toLowerCase().includes(query) ||
+      (sale.clients?.name.toLowerCase().includes(query)) ||
+      sale.status.toLowerCase().includes(query) ||
+      // Search by amount (if query is a number)
+      ((!isNaN(parseFloat(query)) && sale.amount.toString().includes(query))) ||
+      // Search by date (if date is in the format contained in the query)
+      (sale.sale_date && sale.sale_date.toLowerCase().includes(query))
+    );
+  });
 
   const totalSales = sales.reduce((sum, sale) => sum + sale.amount, 0);
   const monthlyTarget = 50000; // This could come from settings
@@ -392,7 +404,7 @@ const SalesPage = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalSales.toLocaleString()}</div>
+            <div className="text-2xl font-bold">RM{totalSales.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
@@ -411,7 +423,7 @@ const SalesPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${sales.length > 0 ? (totalSales / sales.length).toLocaleString() : "0"}
+              RM{sales.length > 0 ? (totalSales / sales.length).toLocaleString() : "0"}
             </div>
           </CardContent>
         </Card>
@@ -450,7 +462,7 @@ const SalesPage = () => {
                   <TableCell>{new Date(sale.sale_date).toLocaleDateString()}</TableCell>
                   <TableCell>{sale.clients?.name || "No Client"}</TableCell>
                   <TableCell>{sale.description || "-"}</TableCell>
-                  <TableCell className="font-medium">${sale.amount.toLocaleString()}</TableCell>
+                  <TableCell className="font-medium">RM{sale.amount.toLocaleString()}</TableCell>
                   <TableCell>{sale.payment_method || "-"}</TableCell>
                   <TableCell>
                     <Badge 

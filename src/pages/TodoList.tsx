@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +62,7 @@ const TodoListPage = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [formData, setFormData] = useState({
@@ -267,31 +267,47 @@ const TodoListPage = () => {
     setEditingTodo(null);
   };
 
-  const filteredTodos = todos.filter(todo =>
-    todo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    todo.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Enhanced search functionality to filter todos by multiple criteria
+  const filteredTodos = todos.filter(todo => {
+    // Apply tab filter first
+    if (activeTab === 'completed' && !todo.completed) return false;
+    if (activeTab === 'active' && todo.completed) return false;
+    
+    // If no search term, just apply tab filter
+    if (!searchTerm) return true;
+    
+    const query = searchTerm.toLowerCase();
+    
+    // Search across multiple todo fields
+    return (
+      // Search in title
+      todo.title.toLowerCase().includes(query) ||
+      // Search in description
+      (todo.description && todo.description.toLowerCase().includes(query)) ||
+      // Search in priority
+      todo.priority.toLowerCase().includes(query) ||
+      // Search in status (completed/active)
+      (todo.completed && 'completed'.includes(query)) ||
+      (!todo.completed && 'active'.includes(query)) ||
+      // Search in due date
+      (todo.due_date && todo.due_date.toLowerCase().includes(query)) ||
+      // Search in related project
+      (todo.projects && todo.projects.name.toLowerCase().includes(query))
+    );
+  });
 
   const completedTodos = todos.filter(todo => todo.completed).length;
   const pendingTodos = todos.filter(todo => !todo.completed).length;
   const highPriorityTodos = todos.filter(todo => todo.priority === "high" && !todo.completed).length;
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
-  }
-
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Todo List</h1>
-          <p className="text-muted-foreground">Manage your tasks and stay organized</p>
-        </div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Todo List</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Todo
+              <Plus className="mr-2 h-4 w-4" /> Add Task
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
@@ -375,7 +391,7 @@ const TodoListPage = () => {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -384,6 +400,29 @@ const TodoListPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant={activeTab === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('all')}
+          >
+            All
+          </Button>
+          <Button
+            variant={activeTab === 'active' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('active')}
+          >
+            Active
+          </Button>
+          <Button
+            variant={activeTab === 'completed' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveTab('completed')}
+          >
+            Completed
+          </Button>
         </div>
       </div>
 
