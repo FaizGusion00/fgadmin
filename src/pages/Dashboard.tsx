@@ -15,7 +15,7 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { ArrowUpRight, CircleDollarSign, PieChart as PieChartIcon, Users, Clock, Activity, TrendingUp } from "lucide-react";
+import { ArrowUpRight, CircleDollarSign, PieChart as PieChartIcon, Users, Clock, Activity, TrendingUp, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -286,7 +286,7 @@ const Dashboard = () => {
           <CardContent className="space-y-3">
             <button className="w-full text-left p-3 rounded-lg hover:bg-muted transition-colors">
               <div className="flex items-center space-x-3">
-                <PlusCircle className="h-5 w-5 text-primary" />
+                <Plus className="h-5 w-5 text-primary" />
                 <span>New Project</span>
               </div>
             </button>

@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { AuthLayout } from "@/components/layout/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, UserPlus } from "lucide-react";
+import { WaterWaveBackground } from "@/components/WaterWaveBackground";
+import { FGAdminLogo } from "@/components/FGAdminLogo";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, signInWithOAuth } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -86,21 +87,75 @@ const Register = () => {
     }
   };
 
-  return (
-    <AuthLayout>
-      <div className="space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-green-600 to-blue-600 mb-4">
-            <UserPlus className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-          <p className="text-muted-foreground">
-            Join FGAdmin and start managing your business
-          </p>
-        </div>
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    setLoading(true);
+    try {
+      const result = await signInWithOAuth(provider);
+      if (!result.success) {
+        toast({
+          title: "Sign up failed",
+          description: result.error || `Failed to sign up with ${provider}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <Card className="border-0 shadow-none bg-transparent">
-          <CardContent className="p-0">
+  return (
+    <div className="min-h-screen relative flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 dark:from-slate-950 dark:to-emerald-950 overflow-hidden">
+      {/* Animated Water Wave Background */}
+      <WaterWaveBackground />
+      
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(25)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-emerald-400/20 rounded-full animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 3}s`
+            }}
+          />
+        ))}
+      </div>
+      
+      <div className="relative z-10 w-full max-w-md px-6 py-10 sm:py-16 flex flex-col items-center">
+        {/* Logo and Title */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center mb-6">
+            <FGAdminLogo size="lg" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            FGAdmin
+          </h1>
+          <p className="text-muted-foreground text-lg">IT Company Management</p>
+        </div>
+        
+        {/* Floating Register Card */}
+        <Card className="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-white/20 dark:border-slate-700/30 shadow-2xl shadow-emerald-500/10 dark:shadow-blue-500/10 hover:shadow-3xl transition-all duration-500 hover:scale-[1.02]">
+          <CardContent className="p-8">
+            {/* Welcome Header */}
+            <div className="text-center space-y-2 mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-emerald-600 to-blue-600 mb-4 shadow-lg">
+                <UserPlus className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight">Create your account</h2>
+              <p className="text-muted-foreground">
+                Join FGAdmin and start managing your business
+              </p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -108,14 +163,14 @@ const Register = () => {
                     First name
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       id="firstName"
                       type="text"
                       placeholder="John"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="pl-10 h-11 bg-background/60 border-border/60 focus:bg-background transition-colors"
+                      className="pl-11 h-12 bg-white/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 hover:shadow-md focus:shadow-lg"
                       required
                       disabled={loading}
                     />
@@ -127,14 +182,14 @@ const Register = () => {
                     Last name
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       id="lastName"
                       type="text"
                       placeholder="Doe"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="pl-10 h-11 bg-background/60 border-border/60 focus:bg-background transition-colors"
+                      className="pl-11 h-12 bg-white/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 hover:shadow-md focus:shadow-lg"
                       required
                       disabled={loading}
                     />
@@ -147,14 +202,14 @@ const Register = () => {
                   Email address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="john.doe@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-11 bg-background/60 border-border/60 focus:bg-background transition-colors"
+                    className="pl-11 h-12 bg-white/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 hover:shadow-md focus:shadow-lg"
                     required
                     disabled={loading}
                   />
@@ -166,14 +221,14 @@ const Register = () => {
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11 bg-background/60 border-border/60 focus:bg-background transition-colors"
+                    className="pl-11 pr-11 h-12 bg-white/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 hover:shadow-md focus:shadow-lg"
                     required
                     disabled={loading}
                   />
@@ -183,7 +238,7 @@ const Register = () => {
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     disabled={loading}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -196,14 +251,14 @@ const Register = () => {
                   Confirm password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10 h-11 bg-background/60 border-border/60 focus:bg-background transition-colors"
+                    className="pl-11 pr-11 h-12 bg-white/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 hover:shadow-md focus:shadow-lg"
                     required
                     disabled={loading}
                   />
@@ -213,7 +268,7 @@ const Register = () => {
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     disabled={loading}
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
@@ -241,40 +296,41 @@ const Register = () => {
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-12 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
                 disabled={loading}
               >
                 {loading ? (
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                     <span>Creating account...</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
                     <span>Create account</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-5 h-5" />
                   </div>
                 )}
               </Button>
             </form>
 
-            <div className="mt-6">
+            <div className="mt-8">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border/60" />
+                  <div className="w-full border-t border-slate-200/60 dark:border-slate-700/60" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                  <span className="bg-white/80 dark:bg-slate-900/80 px-3 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-6 grid grid-cols-2 gap-4">
                 <Button 
                   variant="outline" 
-                  className="h-11 bg-background/60 border-border/60 hover:bg-background transition-colors"
+                  className="h-12 bg-white/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 hover:shadow-md"
                   disabled={loading}
+                  onClick={() => handleOAuthSignIn('google')}
                 >
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -296,18 +352,19 @@ const Register = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="h-11 bg-background/60 border-border/60 hover:bg-background transition-colors"
+                  className="h-12 bg-white/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-700/60 hover:bg-white dark:hover:bg-slate-800 transition-all duration-200 hover:shadow-md"
                   disabled={loading}
+                  onClick={() => handleOAuthSignIn('github')}
                 >
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.024-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.347-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.748-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624.0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001.012.017.001z"/>
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                   </svg>
                   GitHub
                 </Button>
               </div>
             </div>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-8 text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>
               <Link 
                 to="/login" 
@@ -318,8 +375,12 @@ const Register = () => {
             </div>
           </CardContent>
         </Card>
+        
+        <div className="mt-8 text-center text-sm">
+          <p className="text-muted-foreground">&copy; 2025 FGAdmin. All rights reserved.</p>
+        </div>
       </div>
-    </AuthLayout>
+    </div>
   );
 };
 

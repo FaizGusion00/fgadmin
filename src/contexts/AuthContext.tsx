@@ -9,9 +9,10 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string; data?: any }>;
+  signUp: (email: string, password: string, metadata?: object) => Promise<{ success: boolean; error?: string; data?: any }>;
+  signOut: () => Promise<void>;
+  signInWithOAuth: (provider: 'google' | 'github') => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: boolean;
 };
 
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        setLoading(false);
       }
     );
 
@@ -43,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
     
@@ -57,31 +59,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      toast.success(`Welcome back!`);
-      return true;
+      return { success: true, data };
     } catch (err: any) {
       const errorMsg = err.message || 'An error occurred during login';
       setError(errorMsg);
-      toast.error(errorMsg);
-      return false;
+      return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const signUp = async (email: string, password: string, metadata?: object) => {
     setLoading(true);
     setError(null);
     
     try {
-      // Register the user with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            name
-          }
+          data: metadata
         }
       });
 
@@ -89,19 +86,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      toast.success('Registration successful!');
-      return true;
+      return { success: true, data };
     } catch (err: any) {
       const errorMsg = err.message || 'An error occurred during registration';
       setError(errorMsg);
-      toast.error(errorMsg);
-      return false;
+      return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = async () => {
+  const signInWithOAuth = async (provider: 'google' | 'github') => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      const errorMsg = err.message || `An error occurred during ${provider} sign in`;
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       
@@ -126,9 +142,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         loading,
         error,
-        login,
-        register,
-        logout,
+        signIn,
+        signUp,
+        signOut,
+        signInWithOAuth,
         isAuthenticated: !!user,
       }}
     >
