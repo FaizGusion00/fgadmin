@@ -1,547 +1,555 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  PlusCircle, 
-  Search, 
-  FileText, 
-  Calendar as CalendarIcon,
-  Tag,
-  Trash2,
-  Edit2,
-  Star,
-  StarOff,
-  BookOpen,
-} from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PlusCircle, Search, Pin, Edit, Trash2, MoreHorizontal, Tag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
-// Define note type
-type Note = {
+interface Note {
   id: string;
   title: string;
-  content: string;
+  content?: string;
   category: string;
-  createdAt: Date;
-  lastUpdated: Date;
-  favorite: boolean;
-  tags: string[];
-};
+  tags?: string[];
+  is_pinned: boolean;
+  project_id?: string;
+  created_at: string;
+  updated_at: string;
+  project?: { name: string };
+}
 
-// Sample notes data
-const initialNotes: Note[] = [
-  {
-    id: "1",
-    title: "Client Meeting Notes - TechCorp",
-    content: "Met with TechCorp team to discuss website redesign project. Key points:\n- Need responsive design\n- Modern UI with their brand colors\n- Launch timeline: 6 weeks\n- Budget approved for additional features",
-    category: "Client",
-    createdAt: new Date("2025-05-15T10:30:00"),
-    lastUpdated: new Date("2025-05-15T10:30:00"),
-    favorite: true,
-    tags: ["client", "meeting", "website"],
-  },
-  {
-    id: "2",
-    title: "Research Notes - AI Integration",
-    content: "Research on AI integration possibilities for the upcoming CRM project:\n\n1. Chatbot integration\n2. Predictive analytics for sales\n3. Automated customer segmentation\n\nNeed to further investigate cost implications for each option.",
-    category: "Research",
-    createdAt: new Date("2025-05-10T14:20:00"),
-    lastUpdated: new Date("2025-05-16T09:15:00"),
-    favorite: false,
-    tags: ["research", "ai", "crm"],
-  },
-  {
-    id: "3",
-    title: "Team Meeting Summary",
-    content: "Weekly team meeting summary:\n\n- Project status updates\n- Resource allocation for next sprint\n- Training needs for new technologies\n- Client feedback discussion\n\nNext meeting scheduled for next week Tuesday.",
-    category: "Team",
-    createdAt: new Date("2025-05-14T16:00:00"),
-    lastUpdated: new Date("2025-05-14T16:00:00"),
-    favorite: false,
-    tags: ["team", "meeting", "planning"],
-  },
-  {
-    id: "4",
-    title: "Project Ideas - Mobile App",
-    content: "Ideas for the healthcare mobile app project:\n\n- Patient appointment scheduling\n- Medication reminders\n- Doctor-patient secure messaging\n- Health metrics tracking\n- Integration with wearable devices",
-    category: "Project",
-    createdAt: new Date("2025-05-12T11:45:00"),
-    lastUpdated: new Date("2025-05-17T08:30:00"),
-    favorite: true,
-    tags: ["project", "mobile", "healthcare"],
-  },
-];
+interface Project {
+  id: string;
+  name: string;
+}
 
 const Notes = () => {
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [newNote, setNewNote] = useState<Partial<Note>>({
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [formData, setFormData] = useState({
     title: "",
     content: "",
-    category: "General",
-    tags: [],
+    category: "general",
+    tags: "",
+    project_id: ""
   });
-  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
-  
-  // Get unique categories from notes
-  const categories = ["all", ...Array.from(new Set(notes.map(note => note.category)))];
-  
-  // Handle search
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+
+  const categories = ["general", "work", "personal", "ideas", "todo", "meeting"];
+
+  useEffect(() => {
+    if (user) {
+      fetchNotes();
+      fetchProjects();
+    }
+  }, [user]);
+
+  const fetchNotes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("notes")
+        .select(`
+          *,
+          project:projects(name)
+        `)
+        .eq("user_id", user?.id)
+        .order("is_pinned", { ascending: false })
+        .order("updated_at", { ascending: false });
+
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch notes",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  // Filter notes based on search, tab and category
-  const filteredNotes = notes.filter(note => {
-    const matchesSearch = 
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("user_id", user?.id)
+        .order("name");
+
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const matchesTab = 
-      activeTab === "all" || 
-      (activeTab === "favorites" && note.favorite);
-    
-    const matchesCategory =
-      categoryFilter === "all" || note.category === categoryFilter;
-    
-    return matchesSearch && matchesTab && matchesCategory;
-  });
-  
-  // Add new note
-  const addNote = () => {
-    const createdAt = new Date();
-    const newNoteObj: Note = {
-      id: Date.now().toString(),
-      title: newNote.title || "Untitled Note",
-      content: newNote.content || "",
-      category: newNote.category || "General",
-      createdAt,
-      lastUpdated: createdAt,
-      favorite: false,
-      tags: newNote.tags || [],
-    };
-    
-    setNotes([newNoteObj, ...notes]);
-    setNewNote({
+    if (!formData.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Note title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const noteData = {
+        title: formData.title,
+        content: formData.content || null,
+        category: formData.category,
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : null,
+        project_id: formData.project_id || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (editingNote) {
+        const { error } = await supabase
+          .from("notes")
+          .update(noteData)
+          .eq("id", editingNote.id);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Note updated successfully",
+        });
+      } else {
+        const { error } = await supabase
+          .from("notes")
+          .insert([{
+            ...noteData,
+            user_id: user?.id,
+          }]);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Note created successfully",
+        });
+      }
+
+      setDialogOpen(false);
+      resetForm();
+      fetchNotes();
+    } catch (error) {
+      console.error("Error saving note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save note",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (note: Note) => {
+    setEditingNote(note);
+    setFormData({
+      title: note.title,
+      content: note.content || "",
+      category: note.category,
+      tags: note.tags ? note.tags.join(', ') : "",
+      project_id: note.project_id || ""
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (noteId: string) => {
+    if (!confirm("Are you sure you want to delete this note?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .delete()
+        .eq("id", noteId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Note deleted successfully",
+      });
+      
+      fetchNotes();
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete note",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const togglePin = async (noteId: string, currentPinned: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .update({ is_pinned: !currentPinned })
+        .eq("id", noteId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: `Note ${!currentPinned ? 'pinned' : 'unpinned'} successfully`,
+      });
+      
+      fetchNotes();
+    } catch (error) {
+      console.error("Error toggling pin:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update note",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
       title: "",
       content: "",
-      category: "General",
-      tags: [],
+      category: "general",
+      tags: "",
+      project_id: ""
     });
-    setNoteDialogOpen(false);
+    setEditingNote(null);
   };
-  
-  // Update existing note
-  const updateNote = () => {
-    if (!selectedNote) return;
+
+  const getCategoryColor = (category: string) => {
+    const colors: { [key: string]: string } = {
+      general: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+      work: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+      personal: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+      ideas: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+      todo: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+      meeting: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+    };
+    return colors[category] || colors.general;
+  };
+
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         note.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         note.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                         
+    const matchesCategory = selectedCategory === "all" || note.category === selectedCategory;
     
-    setNotes(notes.map(note => 
-      note.id === selectedNote.id
-        ? { ...selectedNote, lastUpdated: new Date() }
-        : note
-    ));
-    
-    setIsEditing(false);
-  };
-  
-  // Toggle favorite status
-  const toggleFavorite = (id: string) => {
-    setNotes(notes.map(note => 
-      note.id === id
-        ? { ...note, favorite: !note.favorite }
-        : note
-    ));
-    
-    if (selectedNote && selectedNote.id === id) {
-      setSelectedNote({ ...selectedNote, favorite: !selectedNote.favorite });
-    }
-  };
-  
-  // Delete note
-  const deleteNote = (id: string) => {
-    setNotes(notes.filter(note => note.id !== id));
-    if (selectedNote && selectedNote.id === id) {
-      setSelectedNote(null);
-    }
-  };
-  
-  // Format date
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-  
+    return matchesSearch && matchesCategory;
+  });
+
+  const pinnedNotes = filteredNotes.filter(note => note.is_pinned);
+  const regularNotes = filteredNotes.filter(note => !note.is_pinned);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">Loading...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Notes</h1>
-          <p className="text-muted-foreground">Capture and organize your ideas</p>
+          <p className="text-muted-foreground">Capture your thoughts and ideas</p>
         </div>
         
-        <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="btn-gradient">
+            <Button onClick={resetForm}>
               <PlusCircle className="mr-2 h-4 w-4" />
               New Note
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[650px]">
+          <DialogContent className="sm:max-w-[550px]">
             <DialogHeader>
-              <DialogTitle>Create New Note</DialogTitle>
+              <DialogTitle>
+                {editingNote ? "Edit Note" : "Create New Note"}
+              </DialogTitle>
               <DialogDescription>
-                Add details for your new note. Click save when you're done.
+                {editingNote ? "Update your note" : "Add a new note to your collection"}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="note-title">Title</Label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title" className="text-right">Title *</Label>
                 <Input
-                  id="note-title"
-                  placeholder="Note title"
-                  value={newNote.title}
-                  onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="col-span-3"
+                  required
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="note-content">Content</Label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="content" className="text-right">Content</Label>
                 <Textarea
-                  id="note-content"
-                  placeholder="Write your note here..."
-                  className="min-h-[200px]"
-                  value={newNote.content}
-                  onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  className="col-span-3"
+                  rows={6}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="note-category">Category</Label>
-                <Select
-                  value={newNote.category}
-                  onValueChange={(value) => setNewNote({ ...newNote, category: value })}
-                >
-                  <SelectTrigger id="note-category">
-                    <SelectValue placeholder="Select a category" />
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="category" className="text-right">Category</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="General">General</SelectItem>
-                    <SelectItem value="Client">Client</SelectItem>
-                    <SelectItem value="Project">Project</SelectItem>
-                    <SelectItem value="Research">Research</SelectItem>
-                    <SelectItem value="Team">Team</SelectItem>
-                    <SelectItem value="Personal">Personal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="note-tags">Tags (comma separated)</Label>
-                <Input
-                  id="note-tags"
-                  placeholder="e.g. important, meeting, follow-up"
-                  onChange={(e) => {
-                    const tagsInput = e.target.value;
-                    const tagsArray = tagsInput
-                      .split(",")
-                      .map(tag => tag.trim())
-                      .filter(Boolean);
-                    setNewNote({ ...newNote, tags: tagsArray });
-                  }}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setNoteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={addNote} className="btn-gradient">
-                Save Note
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search notes..."
-          value={searchQuery}
-          onChange={handleSearch}
-          className="max-w-sm"
-        />
-      </div>
-      
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* Sidebar */}
-        <div className="lg:col-span-4">
-          <Card className="h-full">
-            <CardHeader className="px-4 py-3 border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Your Notes</CardTitle>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
+                    {categories.map(category => (
                       <SelectItem key={category} value={category}>
-                        {category === "all" ? "All Categories" : category}
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="w-full">
-                  <TabsTrigger value="all" className="flex-1">All Notes</TabsTrigger>
-                  <TabsTrigger value="favorites" className="flex-1">Favorites</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="h-[60vh] overflow-y-auto">
-                {filteredNotes.length > 0 ? (
-                  <div className="divide-y">
-                    {filteredNotes.map(note => (
-                      <div
-                        key={note.id}
-                        className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors ${
-                          selectedNote?.id === note.id ? "bg-muted/50" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedNote(note);
-                          setIsEditing(false);
-                        }}
-                      >
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-medium line-clamp-1">{note.title}</h3>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-primary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(note.id);
-                            }}
-                          >
-                            {note.favorite ? (
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            ) : (
-                              <StarOff className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <p className="text-muted-foreground text-sm line-clamp-2 mt-1">
-                          {note.content}
-                        </p>
-                        <div className="flex items-center justify-between mt-2">
-                          <Badge variant="outline" className="text-xs">
-                            {note.category}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(note.lastUpdated)}
-                          </span>
-                        </div>
-                      </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="project" className="text-right">Project</Label>
+                <Select value={formData.project_id} onValueChange={(value) => setFormData({ ...formData, project_id: value })}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No project</SelectItem>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                     ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full py-10">
-                    <FileText className="h-10 w-10 text-muted-foreground mb-2" />
-                    <h3 className="text-lg font-medium">No notes found</h3>
-                    <p className="text-muted-foreground text-center mt-1">
-                      {searchQuery
-                        ? `No notes match "${searchQuery}"`
-                        : "Create a new note to get started."}
-                    </p>
-                    <Button 
-                      className="mt-4" 
-                      variant="outline"
-                      onClick={() => setNoteDialogOpen(true)}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Create a note
-                    </Button>
-                  </div>
-                )}
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tags" className="text-right">Tags</Label>
+                <Input
+                  id="tags"
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="tag1, tag2, tag3"
+                  className="col-span-3"
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingNote ? "Update" : "Create"} Note
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex items-center space-x-2 flex-1">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-sm"
+          />
         </div>
-        
-        {/* Main content */}
-        <div className="lg:col-span-8">
-          <Card className="h-full">
-            {selectedNote ? (
-              <>
-                <CardHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
-                  {isEditing ? (
-                    <Input
-                      value={selectedNote.title}
-                      onChange={(e) => 
-                        setSelectedNote({ ...selectedNote, title: e.target.value })
-                      }
-                      className="font-semibold text-lg"
-                    />
-                  ) : (
-                    <CardTitle className="text-xl">{selectedNote.title}</CardTitle>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-primary"
-                      onClick={() => {
-                        if (isEditing) {
-                          updateNote();
-                        } else {
-                          setIsEditing(true);
-                        }
-                      }}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteNote(selectedNote.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map(category => (
+              <SelectItem key={category} value={category}>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {pinnedNotes.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Pin className="h-4 w-4" />
+            Pinned Notes
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {pinnedNotes.map((note) => (
+              <Card key={note.id} className="hover:shadow-md transition-all">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-base line-clamp-1">{note.title}</CardTitle>
+                      {note.project?.name && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Project: {note.project.name}
+                        </p>
+                      )}
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => togglePin(note.id, note.is_pinned)}>
+                          <Pin className="h-4 w-4 mr-2" />
+                          Unpin
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(note)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(note.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6">
-                  {isEditing ? (
-                    <div className="space-y-4">
-                      <Textarea
-                        value={selectedNote.content}
-                        onChange={(e) => 
-                          setSelectedNote({ ...selectedNote, content: e.target.value })
-                        }
-                        className="min-h-[300px]"
-                      />
-                      
-                      <div className="flex flex-col space-y-2">
-                        <Label htmlFor="edit-category">Category</Label>
-                        <Select
-                          value={selectedNote.category}
-                          onValueChange={(value) => 
-                            setSelectedNote({ ...selectedNote, category: value })
-                          }
-                        >
-                          <SelectTrigger id="edit-category">
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="General">General</SelectItem>
-                            <SelectItem value="Client">Client</SelectItem>
-                            <SelectItem value="Project">Project</SelectItem>
-                            <SelectItem value="Research">Research</SelectItem>
-                            <SelectItem value="Team">Team</SelectItem>
-                            <SelectItem value="Personal">Personal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="flex flex-col space-y-2">
-                        <Label htmlFor="edit-tags">Tags (comma separated)</Label>
-                        <Input
-                          id="edit-tags"
-                          value={selectedNote.tags.join(", ")}
-                          onChange={(e) => {
-                            const tagsInput = e.target.value;
-                            const tagsArray = tagsInput
-                              .split(",")
-                              .map(tag => tag.trim())
-                              .filter(Boolean);
-                            setSelectedNote({ ...selectedNote, tags: tagsArray });
-                          }}
-                        />
-                      </div>
-                      
-                      <div className="flex justify-end space-x-2 pt-4">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setIsEditing(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          className="btn-gradient" 
-                          onClick={updateNote}
-                        >
-                          Save Changes
-                        </Button>
-                      </div>
+                <CardContent>
+                  {note.content && (
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                      {note.content}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge className={getCategoryColor(note.category)} variant="outline">
+                        {note.category}
+                      </Badge>
+                      {note.is_pinned && (
+                        <Pin className="h-3 w-3 text-muted-foreground" />
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="prose prose-sm max-w-none">
-                        {selectedNote.content.split("\n").map((line, i) => (
-                          <React.Fragment key={i}>
-                            {line}
-                            <br />
-                          </React.Fragment>
-                        ))}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 mt-8">
-                        {selectedNote.tags.map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                            <Tag className="h-3 w-3" />
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(note.updated_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {note.tags && note.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {note.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          <Tag className="h-2 w-2 mr-1" />
+                          {tag}
+                        </Badge>
+                      ))}
                     </div>
                   )}
                 </CardContent>
-                <CardFooter className="border-t flex justify-between py-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <CalendarIcon className="h-4 w-4 mr-1" />
-                    <span>Created: {formatDate(selectedNote.createdAt)}</span>
-                  </div>
-                  
-                  {selectedNote.lastUpdated > selectedNote.createdAt && (
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      <span>Updated: {formatDate(selectedNote.lastUpdated)}</span>
-                    </div>
-                  )}
-                </CardFooter>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[60vh] p-6">
-                <BookOpen className="h-16 w-16 text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-bold mb-2">No Note Selected</h2>
-                <p className="text-muted-foreground text-center max-w-md">
-                  Select a note from the sidebar to view its details, or create a new note to get started.
-                </p>
-                <Button 
-                  className="mt-6 btn-gradient" 
-                  onClick={() => setNoteDialogOpen(true)}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create New Note
-                </Button>
-              </div>
-            )}
-          </Card>
+              </Card>
+            ))}
+          </div>
         </div>
+      )}
+
+      <div>
+        {pinnedNotes.length > 0 && (
+          <h2 className="text-lg font-semibold mb-4">All Notes</h2>
+        )}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {regularNotes.map((note) => (
+            <Card key={note.id} className="hover:shadow-md transition-all">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-base line-clamp-1">{note.title}</CardTitle>
+                    {note.project?.name && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Project: {note.project.name}
+                      </p>
+                    )}
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => togglePin(note.id, note.is_pinned)}>
+                        <Pin className="h-4 w-4 mr-2" />
+                        Pin
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(note)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(note.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {note.content && (
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                    {note.content}
+                  </p>
+                )}
+                <div className="flex items-center justify-between">
+                  <Badge className={getCategoryColor(note.category)} variant="outline">
+                    {note.category}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(note.updated_at).toLocaleDateString()}
+                  </span>
+                </div>
+                {note.tags && note.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {note.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        <Tag className="h-2 w-2 mr-1" />
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredNotes.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-40 bg-muted/20 rounded-lg">
+            <p className="text-muted-foreground">No notes found</p>
+            <Button variant="link" onClick={() => { resetForm(); setDialogOpen(true); }}>
+              Create your first note
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

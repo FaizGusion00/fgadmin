@@ -9,6 +9,69 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          all_day: boolean | null
+          client_id: string | null
+          created_at: string
+          description: string | null
+          end_time: string
+          event_type: string | null
+          id: string
+          location: string | null
+          project_id: string | null
+          start_time: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time: string
+          event_type?: string | null
+          id?: string
+          location?: string | null
+          project_id?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          all_day?: boolean | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          event_type?: string | null
+          id?: string
+          location?: string | null
+          project_id?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_calendar_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calendar_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -50,6 +113,109 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      notes: {
+        Row: {
+          category: string | null
+          content: string | null
+          created_at: string
+          id: string
+          is_pinned: boolean | null
+          project_id: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          project_id?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          project_id?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_notes_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          budget: number | null
+          client_id: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          priority: string
+          progress: number | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          priority?: string
+          progress?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          priority?: string
+          progress?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_projects_client"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sales: {
         Row: {
@@ -94,6 +260,189 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thesis: {
+        Row: {
+          abstract: string | null
+          created_at: string
+          current_words: number | null
+          defense_date: string | null
+          department: string | null
+          id: string
+          status: string | null
+          submission_date: string | null
+          supervisor: string | null
+          target_words: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          abstract?: string | null
+          created_at?: string
+          current_words?: number | null
+          defense_date?: string | null
+          department?: string | null
+          id?: string
+          status?: string | null
+          submission_date?: string | null
+          supervisor?: string | null
+          target_words?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          abstract?: string | null
+          created_at?: string
+          current_words?: number | null
+          defense_date?: string | null
+          department?: string | null
+          id?: string
+          status?: string | null
+          submission_date?: string | null
+          supervisor?: string | null
+          target_words?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      thesis_chapters: {
+        Row: {
+          chapter_number: number
+          content: string | null
+          created_at: string
+          id: string
+          status: string | null
+          thesis_id: string
+          title: string
+          updated_at: string
+          word_count: number | null
+        }
+        Insert: {
+          chapter_number: number
+          content?: string | null
+          created_at?: string
+          id?: string
+          status?: string | null
+          thesis_id: string
+          title: string
+          updated_at?: string
+          word_count?: number | null
+        }
+        Update: {
+          chapter_number?: number
+          content?: string | null
+          created_at?: string
+          id?: string
+          status?: string | null
+          thesis_id?: string
+          title?: string
+          updated_at?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_chapters_thesis"
+            columns: ["thesis_id"]
+            isOneToOne: false
+            referencedRelation: "thesis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thesis_references: {
+        Row: {
+          authors: string
+          created_at: string
+          id: string
+          journal: string | null
+          notes: string | null
+          publication_year: number | null
+          thesis_id: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          authors: string
+          created_at?: string
+          id?: string
+          journal?: string | null
+          notes?: string | null
+          publication_year?: number | null
+          thesis_id: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          authors?: string
+          created_at?: string
+          id?: string
+          journal?: string | null
+          notes?: string | null
+          publication_year?: number | null
+          thesis_id?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_references_thesis"
+            columns: ["thesis_id"]
+            isOneToOne: false
+            referencedRelation: "thesis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      todos: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string | null
+          project_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          project_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_todos_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
