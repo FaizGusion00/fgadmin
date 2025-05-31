@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Header = () => {
   const { user, logout } = useAuth();
@@ -21,9 +22,41 @@ export const Header = () => {
     e.preventDefault();
     console.log("Searching for:", searchQuery);
   };
+
+  // Get user display name and avatar from metadata or email
+  const getUserDisplayName = () => {
+    if (!user) return "User";
+    
+    // Try to get name from user metadata
+    const firstName = user.user_metadata?.first_name || user.user_metadata?.name;
+    const lastName = user.user_metadata?.last_name;
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (firstName) {
+      return firstName;
+    } else if (user.email) {
+      // Extract name from email if no metadata
+      return user.email.split('@')[0];
+    }
+    
+    return "User";
+  };
+
+  const getUserInitials = () => {
+    const displayName = getUserDisplayName();
+    if (displayName && displayName !== "User") {
+      return displayName.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  const getUserAvatar = () => {
+    return user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  };
   
   return (
-    <header className="h-16 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-30 flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 border-b bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 dark:border-slate-700 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-6">
       {/* Left side - Search */}
       <div className="flex-1 max-w-md">
         <form onSubmit={handleSearch} className="relative">
@@ -40,6 +73,9 @@ export const Header = () => {
       
       {/* Right side - Actions */}
       <div className="flex items-center gap-4">
+        {/* Theme Toggle */}
+        <ThemeToggle variant="button" />
+        
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -91,15 +127,15 @@ export const Header = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8 border">
-                  <AvatarImage src={user.avatarUrl} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={getUserAvatar()} alt={getUserDisplayName()} />
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <div className="flex items-center justify-start gap-2 p-2">
                 <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium">{user.name}</p>
+                  <p className="font-medium">{getUserDisplayName()}</p>
                   <p className="w-[200px] truncate text-sm text-muted-foreground">
                     {user.email}
                   </p>
