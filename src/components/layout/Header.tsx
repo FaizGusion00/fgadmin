@@ -710,12 +710,6 @@ export const Header = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer"
-                onClick={() => window.location.href = "/profile"}
-              >
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer"
                 onClick={() => window.location.href = "/settings"}
               >
                 Settings

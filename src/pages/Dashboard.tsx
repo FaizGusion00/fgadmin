@@ -28,6 +28,8 @@ interface DashboardStats {
   taskCompletionByDay: { [key: string]: { completed: number; pending: number } };
   revenueByMonth: { [key: string]: number };
   activityDistribution: { [key: string]: number };
+  currency: string;
+  currencySymbol: string;
 }
 
 interface RecentActivity {
@@ -57,6 +59,8 @@ const Dashboard = () => {
     taskCompletionByDay: {},
     revenueByMonth: {},
     activityDistribution: {},
+    currency: 'MYR',
+    currencySymbol: 'RM'
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,9 +87,52 @@ const Dashboard = () => {
     }
   };
 
+  // Get currency symbol based on currency code
+  const getCurrencySymbol = (currencyCode: string): string => {
+    switch (currencyCode) {
+      case 'USD': return '$';
+      case 'MYR': return 'RM';
+      case 'SGD': return 'S$';
+      case 'EUR': return '€';
+      case 'GBP': return '£';
+      default: return 'RM';
+    }
+  };
+
+  const fetchUserSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", user?.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching user settings:", error);
+        return;
+      }
+
+      if (data) {
+        const currencyCode = data.default_currency || 'MYR';
+        const currencySymbol = getCurrencySymbol(currencyCode);
+        
+        setStats(prevStats => ({
+          ...prevStats,
+          currency: currencyCode,
+          currencySymbol: currencySymbol
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      
+      // Fetch user settings first to get currency preference
+      await fetchUserSettings();
       const [
         projectsResult,
         clientsResult,
@@ -173,20 +220,22 @@ const Dashboard = () => {
         Notes: notes.length || 1,
       };
 
-      setStats({
+      // Set dashboard stats
+      setStats(prevStats => ({
+        ...prevStats,
         totalProjects: projects.length,
-        activeProjects: projects.filter(p => p.status === 'active' || p.status === 'planning').length,
+        activeProjects: projects.filter(p => p.status === 'active' || p.status === 'in-progress').length,
         totalClients: clients.length,
         totalSales: sales.reduce((sum, sale) => sum + (sale.amount || 0), 0),
-        completedTodos: todos.filter(t => t.completed).length,
-        pendingTodos: todos.filter(t => !t.completed).length,
-        upcomingEvents: events.filter(e => new Date(e.start_time) <= todayEnd && new Date(e.start_time) >= now).length,
+        completedTodos: todos.filter(todo => todo.completed).length,
+        pendingTodos: todos.filter(todo => !todo.completed).length,
+        upcomingEvents: events.filter(event => new Date(event.start_time) > now).length,
         totalNotes: notes.length,
         projectStatusCount,
         taskCompletionByDay,
         revenueByMonth,
-        activityDistribution,
-      });
+        activityDistribution
+      }));
 
       // Create recent activity
       const activities: RecentActivity[] = [];
@@ -317,7 +366,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${stats.totalSales.toLocaleString()}
+                {stats.currencySymbol}{stats.totalSales.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
                 Revenue from all sales
