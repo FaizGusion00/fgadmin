@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,35 @@ import {
 import { Plus, Search, MoreHorizontal, Edit, Trash2, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from "chart.js";
+import { Line, Bar } from "react-chartjs-2";
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 interface Sale {
   id: string;
@@ -63,6 +90,7 @@ interface Client {
 const SalesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [sales, setSales] = useState<Sale[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,13 +105,98 @@ const SalesPage = () => {
     status: "completed",
     payment_method: ""
   });
+  
+  // State for sales graphs
+  const [monthlySalesData, setMonthlySalesData] = useState({
+    labels: [] as string[],
+    data: [] as number[]
+  });
+  const [salesByTypeData, setSalesByTypeData] = useState({
+    labels: [] as string[],
+    data: [] as number[]
+  });
+  const [isGraphsLoading, setIsGraphsLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchSales();
       fetchClients();
+      fetchSalesGraphData();
     }
   }, [user]);
+  
+  // Fetch sales data for graphs
+  const fetchSalesGraphData = async () => {
+    setIsGraphsLoading(true);
+    try {
+      // Get the last 6 months for monthly sales
+      const monthlyLabels = [];
+      const monthlyData = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const date = subMonths(new Date(), i);
+        const monthName = format(date, 'MMM yyyy');
+        const startDate = startOfMonth(date);
+        const endDate = endOfMonth(date);
+        
+        // Query supabase for sales data in this month range
+        const { data, error } = await supabase
+          .from("sales")
+          .select("amount")
+          .eq("user_id", user?.id)
+          .gte("sale_date", startDate.toISOString().split('T')[0])
+          .lte("sale_date", endDate.toISOString().split('T')[0]);
+          
+        if (error) throw error;
+        
+        // Calculate total sales for this month
+        const monthTotal = data.reduce((sum, sale) => sum + sale.amount, 0);
+        monthlyLabels.push(monthName);
+        monthlyData.push(monthTotal);
+      }
+      
+      setMonthlySalesData({
+        labels: monthlyLabels,
+        data: monthlyData
+      });
+      
+      // Get sales by payment method breakdown
+      const { data: typeData, error: typeError } = await supabase
+        .from("sales")
+        .select("payment_method, amount")
+        .eq("user_id", user?.id);
+        
+      if (typeError) throw typeError;
+      
+      // Group by payment method and calculate totals
+      const typeMap = new Map();
+      typeData.forEach(item => {
+        const method = item.payment_method || 'Other';
+        const currentTotal = typeMap.get(method) || 0;
+        typeMap.set(method, currentTotal + item.amount);
+      });
+      
+      const typeLabels = [...typeMap.keys()].map(key => 
+        key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ')
+      );
+      const typeValues = [...typeMap.values()];
+      
+      setSalesByTypeData({
+        labels: typeLabels,
+        data: typeValues
+      });
+      
+      setIsGraphsLoading(false);
+    } catch (error) {
+      console.error("Error fetching sales graph data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load sales graph data",
+        variant: "destructive"
+      });
+      setIsGraphsLoading(false);
+    }
+  };
 
   const fetchSales = async () => {
     try {
@@ -404,7 +517,7 @@ const SalesPage = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">RM{totalSales.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalSales)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -423,7 +536,7 @@ const SalesPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              RM{sales.length > 0 ? (totalSales / sales.length).toLocaleString() : "0"}
+              {sales.length > 0 ? formatCurrency(totalSales / sales.length) : formatCurrency(0)}
             </div>
           </CardContent>
         </Card>
@@ -434,6 +547,119 @@ const SalesPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{monthlyProgress.toFixed(1)}%</div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Production Graphs */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Monthly Production Graph */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Sales</CardTitle>
+            <p className="text-sm text-muted-foreground">Revenue trends over the last 6 months</p>
+          </CardHeader>
+          <CardContent className="h-80">
+            {isGraphsLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <p>Loading production data...</p>
+              </div>
+            ) : (
+              <Line
+                data={{
+                  labels: monthlySalesData.labels,
+                  datasets: [
+                    {
+                      label: 'Sales Value',
+                      data: monthlySalesData.data,
+                      borderColor: 'rgb(53, 162, 235)',
+                      backgroundColor: 'rgba(53, 162, 235, 0.5)',
+                      tension: 0.3,
+                      fill: true,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        callback: (value) => formatCurrency(Number(value))
+                      }
+                    }
+                  },
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                      }
+                    }
+                  },
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Production by Type Graph */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Sales by Payment Method</CardTitle>
+            <p className="text-sm text-muted-foreground">Breakdown of sales by payment type</p>
+          </CardHeader>
+          <CardContent className="h-80">
+            {isGraphsLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <p>Loading production data...</p>
+              </div>
+            ) : (
+              <Bar
+                data={{
+                  labels: salesByTypeData.labels,
+                  datasets: [
+                    {
+                      label: 'Sales Value',
+                      data: salesByTypeData.data,
+                      backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                      ],
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        callback: (value) => formatCurrency(Number(value))
+                      }
+                    }
+                  },
+                  plugins: {
+                    legend: {
+                      display: false,
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => `${context.label}: ${formatCurrency(context.parsed.y)}`
+                      }
+                    }
+                  },
+                }}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -459,15 +685,15 @@ const SalesPage = () => {
             <TableBody>
               {filteredSales.map((sale) => (
                 <TableRow key={sale.id}>
-                  <TableCell>{new Date(sale.sale_date).toLocaleDateString()}</TableCell>
-                  <TableCell>{sale.clients?.name || "No Client"}</TableCell>
-                  <TableCell>{sale.description || "-"}</TableCell>
-                  <TableCell className="font-medium">RM{sale.amount.toLocaleString()}</TableCell>
+                  <TableCell>{format(new Date(sale.sale_date), 'MMM dd, yyyy')}</TableCell>
+                  <TableCell>{sale.clients?.name || 'Unknown'}</TableCell>
+                  <TableCell>{sale.description}</TableCell>
+                  <TableCell>{formatCurrency(sale.amount)}</TableCell>
                   <TableCell>{sale.payment_method || "-"}</TableCell>
                   <TableCell>
                     <Badge 
                       variant={
-                        sale.status === "completed" ? "default" : 
+                        sale.status === "completed" ? "default" :
                         sale.status === "pending" ? "secondary" : "destructive"
                       }
                     >

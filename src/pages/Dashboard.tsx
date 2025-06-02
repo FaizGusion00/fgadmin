@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, Users, FolderKanban, DollarSign, CheckCircle2, AlertCircle, BarChart, PieChart, LineChart, Activity, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, RadialLinearScale, Title, Filler } from 'chart.js';
 import { Pie, Line, Bar, Radar } from 'react-chartjs-2';
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,6 @@ interface DashboardStats {
   taskCompletionByDay: { [key: string]: { completed: number; pending: number } };
   revenueByMonth: { [key: string]: number };
   activityDistribution: { [key: string]: number };
-  currency: string;
-  currencySymbol: string;
 }
 
 interface RecentActivity {
@@ -44,6 +43,7 @@ interface RecentActivity {
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { formatCurrency, currencySymbol, currencyCode } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
   const refreshButtonRef = useRef<HTMLButtonElement>(null);
   const [stats, setStats] = useState<DashboardStats>({
@@ -58,9 +58,7 @@ const Dashboard = () => {
     projectStatusCount: {},
     taskCompletionByDay: {},
     revenueByMonth: {},
-    activityDistribution: {},
-    currency: 'MYR',
-    currencySymbol: 'RM'
+    activityDistribution: {}
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,20 +85,13 @@ const Dashboard = () => {
     }
   };
 
-  // Get currency symbol based on currency code
-  const getCurrencySymbol = (currencyCode: string): string => {
-    switch (currencyCode) {
-      case 'USD': return '$';
-      case 'MYR': return 'RM';
-      case 'SGD': return 'S$';
-      case 'EUR': return '€';
-      case 'GBP': return '£';
-      default: return 'RM';
-    }
-  };
+  // Currency is now handled by CurrencyContext
 
+  // User settings like currency are now handled by CurrencyContext
   const fetchUserSettings = async () => {
     try {
+      // We may still need to fetch other user settings in the future
+      // But currency is now handled by CurrencyContext
       const { data, error } = await supabase
         .from("user_settings")
         .select("*")
@@ -112,16 +103,7 @@ const Dashboard = () => {
         return;
       }
 
-      if (data) {
-        const currencyCode = data.default_currency || 'MYR';
-        const currencySymbol = getCurrencySymbol(currencyCode);
-        
-        setStats(prevStats => ({
-          ...prevStats,
-          currency: currencyCode,
-          currencySymbol: currencySymbol
-        }));
-      }
+      // Any future non-currency user settings can be processed here
     } catch (error) {
       console.error("Error fetching user settings:", error);
     }
@@ -375,7 +357,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.currencySymbol}{stats.totalSales.toLocaleString()}
+                {formatCurrency(stats.totalSales)}
               </div>
               <p className="text-xs text-muted-foreground">
                 Revenue from all sales

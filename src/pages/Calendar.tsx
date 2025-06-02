@@ -474,7 +474,7 @@ const Calendar = () => {
           <Card>
             <CardContent className="pt-6">
               <CalendarComponent
-                viewMode="month"
+                viewMode="day"
                 selected={date}
                 onSelect={(selectedDate) => {
                   // Handle different types of selection

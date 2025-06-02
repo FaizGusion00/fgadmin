@@ -14,6 +14,7 @@ import { PlusCircle, Search, Calendar as CalendarIcon, Edit, Trash2, MoreHorizon
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface Project {
@@ -42,6 +43,7 @@ interface Client {
 const Projects = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -497,7 +499,7 @@ const Projects = () => {
                       </Badge>
                       {project.budget && (
                         <span className="text-sm text-muted-foreground">
-                          ${project.budget.toLocaleString()}
+                          {formatCurrency(project.budget)}
                         </span>
                       )}
                     </div>
