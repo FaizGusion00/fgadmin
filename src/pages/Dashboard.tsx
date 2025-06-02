@@ -210,15 +210,24 @@ const Dashboard = () => {
         }
       });
 
-      // Calculate activity distribution
+      // Calculate activity distribution - use actual counts without fallbacks for accurate representation
       const activityDistribution = {
-        Projects: projects.length || 1,  // Ensure we have at least 1 for visualization
-        Clients: clients.length || 1,
-        Sales: sales.length || 1,
-        Tasks: todos.length || 1,
-        Events: events.length || 1,
-        Notes: notes.length || 1,
+        Projects: projects.length,
+        Clients: clients.length,
+        Sales: sales.length,
+        Tasks: todos.length,
+        Events: events.length,
+        Notes: notes.length,
       };
+      
+      // If all values are 0, add a small placeholder value to prevent chart errors
+      const totalActivities = Object.values(activityDistribution).reduce((sum, count) => sum + count, 0);
+      if (totalActivities === 0) {
+        // Add placeholder values only if there's no data at all
+        Object.keys(activityDistribution).forEach(key => {
+          activityDistribution[key as keyof typeof activityDistribution] = 1;
+        });
+      }
 
       // Set dashboard stats
       setStats(prevStats => ({

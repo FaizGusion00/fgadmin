@@ -174,10 +174,19 @@ const ClientsPage = () => {
     if (!confirm("Are you sure you want to delete this client?")) return;
 
     try {
+      // First validate the session is active
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No active session found");
+      }
+
+      // Proceed with deletion with proper headers
       const { error } = await supabase
         .from("clients")
         .delete()
-        .eq("id", clientId);
+        .eq("id", clientId)
+        .eq("user_id", user?.id); // Ensure we're only deleting the user's own clients
 
       if (error) throw error;
       
@@ -191,7 +200,7 @@ const ClientsPage = () => {
       console.error("Error deleting client:", error);
       toast({
         title: "Error",
-        description: "Failed to delete client",
+        description: "Failed to delete client: " + (error instanceof Error ? error.message : "Unknown error"),
         variant: "destructive",
       });
     }
