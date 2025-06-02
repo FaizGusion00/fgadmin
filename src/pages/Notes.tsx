@@ -1,18 +1,21 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Search, Pin, Edit, Trash2, MoreHorizontal, Tag } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { PlusCircle, Search, Pin, Edit, Trash2, MoreHorizontal, Tag, Calendar, Clock, Folder, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 
 interface Note {
   id: string;
@@ -41,6 +44,8 @@ const Notes = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingNote, setViewingNote] = useState<Note | null>(null);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -279,17 +284,160 @@ const Notes = () => {
   const regularNotes = filteredNotes.filter(note => !note.is_pinned);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-32 h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+          <div className="w-48 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        </div>
+      </div>
+    );
   }
+
+  const handleViewNote = (note: Note) => {
+    setDialogOpen(false);
+    setEditingNote(null);
+    setViewingNote(note);
+    setViewDialogOpen(true);
+  };
+
+  const handleEditNote = (note: Note) => {
+    setViewDialogOpen(false);
+    setViewingNote(null);
+    setEditingNote(note);
+    setFormData({
+      title: note.title,
+      content: note.content || "",
+      category: note.category,
+      tags: note.tags ? note.tags.join(', ') : "",
+      project_id: note.project_id || "none"
+    });
+    setDialogOpen(true);
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Notes</h1>
-          <p className="text-muted-foreground">Capture your thoughts and ideas</p>
+          <h1 className="text-4xl font-extrabold tracking-tight mb-1">Notes</h1>
+          <p className="text-muted-foreground text-base">Capture your thoughts and ideas</p>
         </div>
         
+        {/* View Note Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-hidden flex flex-col rounded-2xl shadow-2xl border border-muted bg-gradient-to-br from-background via-muted/70 to-background p-6">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-xl font-bold">
+                  {viewingNote?.title}
+                </DialogTitle>
+                
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {viewingNote && (
+                  <Badge className={getCategoryColor(viewingNote.category)}>
+                    {viewingNote.category.charAt(0).toUpperCase() + viewingNote.category.slice(1)}
+                  </Badge>
+                )}
+                {viewingNote?.project?.name && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Folder className="h-3 w-3" />
+                    {viewingNote.project.name}
+                  </Badge>
+                )}
+                {viewingNote?.is_pinned && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Pin className="h-3 w-3" />
+                    Pinned
+                  </Badge>
+                )}
+              </div>
+            </DialogHeader>
+            <ScrollArea className="flex-1 mt-4 pr-4">
+              {/* Content Section */}
+              {viewingNote?.content ? (
+                <div className="prose dark:prose-invert prose-sm max-w-none">
+                  {viewingNote.content.split('\n').map((paragraph, idx) => (
+                    <p key={idx}>{paragraph}</p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground italic">No content</p>
+              )}
+              
+              {viewingNote?.tags && viewingNote.tags.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    Tags
+                  </h4>
+                  <div className="flex flex-wrap gap-1">
+                    {viewingNote.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </ScrollArea>
+            <Separator className="my-6" />
+            {/* Metadata Section */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-muted-foreground gap-2 px-1">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                <span>Created: {viewingNote && formatDateTime(viewingNote.created_at)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>Updated: {viewingNote && formatDateTime(viewingNote.updated_at)}</span>
+              </div>
+            </div>
+            <DialogFooter className="pt-4 flex flex-row gap-2 justify-end">
+              {/* Action Buttons */}
+              <Button 
+                variant="outline" 
+                className="mr-auto"
+                onClick={async () => {
+                  setViewDialogOpen(false);
+                  // Delay opening edit modal to avoid stacking
+                  setTimeout(() => {
+                    if (viewingNote) handleEdit(viewingNote);
+                  }, 200);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button 
+                variant="destructive"
+                className="ml-2"
+                onClick={() => {
+                  if (viewingNote) {
+                    setViewDialogOpen(false);
+                    handleDelete(viewingNote.id);
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Create/Edit Note Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
@@ -379,7 +527,7 @@ const Notes = () => {
         </Dialog>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 bg-gradient-to-r from-muted/20 via-background to-muted/10 p-6 rounded-xl shadow-lg border border-muted/40">
         <div className="flex items-center space-x-2 flex-1">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
@@ -412,11 +560,15 @@ const Notes = () => {
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {pinnedNotes.map((note) => (
-              <Card key={note.id} className="hover:shadow-md transition-all">
-                <CardHeader className="pb-2">
+              <Card 
+                key={note.id} 
+                className="hover:shadow-lg transition-all border-l-4 border-l-amber-500 dark:border-l-amber-600 group cursor-pointer relative overflow-hidden bg-gradient-to-br from-muted/40 to-background rounded-xl"
+                style={{minHeight: '180px'}} 
+              >
+                <CardHeader className="pb-2 pt-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-base line-clamp-1">{note.title}</CardTitle>
+                      <CardTitle className="text-base line-clamp-1 group-hover:text-primary transition-colors">{note.title}</CardTitle>
                       {note.project?.name && (
                         <p className="text-sm text-muted-foreground mt-1">
                           Project: {note.project.name}
@@ -430,11 +582,15 @@ const Notes = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewNote(note)}>
+                          <Search className="h-4 w-4 mr-2" />
+                          View
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => togglePin(note.id, note.is_pinned)}>
                           <Pin className="h-4 w-4 mr-2" />
                           Unpin
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(note)}>
+                        <DropdownMenuItem onClick={() => handleEditNote(note)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
@@ -449,9 +605,9 @@ const Notes = () => {
                     </DropdownMenu>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pb-4">
                   {note.content && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-3 bg-muted/30 p-2 rounded-sm">
                       {note.content}
                     </p>
                   )}
@@ -491,11 +647,15 @@ const Notes = () => {
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {regularNotes.map((note) => (
-            <Card key={note.id} className="hover:shadow-md transition-all">
-              <CardHeader className="pb-2">
+            <Card 
+              key={note.id} 
+              className="hover:shadow-lg transition-all hover:border-primary group cursor-pointer relative overflow-hidden bg-gradient-to-br from-muted/40 to-background rounded-xl"
+              style={{minHeight: '180px'}} 
+            >
+              <CardHeader className="pb-2 pt-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-base line-clamp-1">{note.title}</CardTitle>
+                    <CardTitle className="text-base line-clamp-1 group-hover:text-primary transition-colors">{note.title}</CardTitle>
                     {note.project?.name && (
                       <p className="text-sm text-muted-foreground mt-1">
                         Project: {note.project.name}
@@ -509,11 +669,15 @@ const Notes = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleViewNote(note)}>
+                        <Search className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => togglePin(note.id, note.is_pinned)}>
                         <Pin className="h-4 w-4 mr-2" />
                         Pin
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEdit(note)}>
+                      <DropdownMenuItem onClick={() => handleEditNote(note)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
@@ -528,9 +692,9 @@ const Notes = () => {
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pb-4">
                 {note.content && (
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-3 bg-muted/30 p-2 rounded-sm">
                     {note.content}
                   </p>
                 )}
@@ -558,7 +722,8 @@ const Notes = () => {
         </div>
 
         {filteredNotes.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-40 bg-muted/20 rounded-lg">
+          <div className="flex flex-col items-center justify-center h-60 bg-gradient-to-br from-muted/30 to-background rounded-xl border border-dashed border-muted-foreground/20 shadow-inner">
+            <span className="mb-2 text-4xl text-muted-foreground">📝</span>
             <p className="text-muted-foreground">No notes found</p>
             <Button variant="link" onClick={() => { resetForm(); setDialogOpen(true); }}>
               Create your first note
