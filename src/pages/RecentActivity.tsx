@@ -460,7 +460,7 @@ const RecentActivityPage = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       initialFocus
-                      viewMode="month"
+                      viewMode="day"
                       defaultMonth={dateRange.from}
                       selected={dateRange}
                       onSelect={handleDateRangeChange}

@@ -202,14 +202,9 @@ const Dashboard = () => {
         Notes: notes.length,
       };
       
-      // If all values are 0, add a small placeholder value to prevent chart errors
+      // If all values are 0, leave activityDistribution as is (empty or all zeros)
       const totalActivities = Object.values(activityDistribution).reduce((sum, count) => sum + count, 0);
-      if (totalActivities === 0) {
-        // Add placeholder values only if there's no data at all
-        Object.keys(activityDistribution).forEach(key => {
-          activityDistribution[key as keyof typeof activityDistribution] = 1;
-        });
-      }
+      // No placeholder logic. If totalActivities === 0, chart should show empty state.
 
       // Set dashboard stats
       setStats(prevStats => ({
@@ -463,7 +458,7 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent className="p-1 sm:p-4 md:p-6">
                     <div className="h-[280px] md:h-[320px] w-full flex flex-col items-center justify-center">
-                      {Object.keys(stats.activityDistribution).length > 0 ? (
+                      {Object.keys(stats.activityDistribution).length > 0 && Object.values(stats.activityDistribution).reduce((sum, val) => sum + Number(val), 0) > 0 ? (
                         <div className="w-full h-full flex flex-col sm:flex-row items-center">
                           <div className="relative w-full sm:w-3/5 h-[200px] sm:h-full">
                             <Pie 
